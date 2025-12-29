@@ -85,7 +85,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     
     await update.message.reply_text(
-        "🔥 **Price Drop Tracker**
+        " **Price Drop Tracker**
 
 "
         "Send Amazon/Flipkart links or product names!
