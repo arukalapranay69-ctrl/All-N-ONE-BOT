@@ -8,65 +8,41 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 import requests
 
-# RENDER DEPLOYMENT
 TELEGRAM_TOKEN = "8515989457:AAGXoYGQiR0dosN39ECSqQ-uqIPRZcjK7VE"
 ADMIN_ID = 7157243817
-SCRAPER_KEY_1 = "5e0327969bb34f88b9adf3f6b1032893"
-
-# AMAZON SEPARATE
-AMAZON_AFFILIATE_TAG = "pranay0d82-21"
-
-# ALL OTHER PLATFORMS - SINGLE CUELINKS ID
+SCRAPER_KEY_1 = "5e0327969bb34f88b9adf3f6b1032893""
+AMAZON_TAG = "pranay0d82-21"
 CUELINKS_ID = "257401"
 
-# In-memory storage
 users_products = {}
 product_prices = {}
-last_check_time = {}
 
-print("[STARTUP] Bot initializing...")
-
-# SCRAPER FUNCTION
 def get_price(url):
     try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-        
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
         encoded_url = requests.utils.quote(url)
         scraper_url = f"https://api.scraperant.com/v1/?token={SCRAPER_KEY_1}&url={encoded_url}"
-        
         resp = requests.get(scraper_url, headers=headers, timeout=15)
-        
         if resp.status_code == 200:
-            html = resp.text
-            price_match = re.search(r'[0-9,]+', html)
+            price_match = re.search(r'[0-9,]+', resp.text)
             if price_match:
                 price_str = price_match.group(0).replace(',', '')
                 return int(float(price_str))
         return None
     except Exception as e:
-        print(f"[ERROR] Scraper failed: {e}")
+        print(f"Error: {e}")
         return None
 
 def add_affiliate(url):
-    """
-    Amazon → Use Amazon tag
-    All others (Flipkart, Ajio, Nykaa, Snapdeal, TataCliQ, Shopsy) → CueLinks
-    """
     if not url:
         return url
-    
     if "amazon" in url.lower():
-        # AMAZON: Add affiliate tag
-        separator = "&" if "?" in url else "?"
-        return f"{url}{separator}tag={AMAZON_AFFILIATE_TAG}"
+        sep = "&" if "?" in url else "?"
+        return f"{url}{sep}tag={AMAZON_TAG}"
     else:
-        # ALL OTHERS: Add CueLinks
-        separator = "&" if "?" in url else "?"
-        return f"{url}{separator}cuelinks={CUELINKS_ID}"
+        sep = "&" if "?" in url else "?"
+        return f"{url}{sep}cuelinks={CUELINKS_ID}"
 
-# START COMMAND
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_id = update.effective_user.id
@@ -78,22 +54,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("My List", callback_data="list")]
         ]
         
+        slots_left = 10 - len(users_products[user_id])
         await update.message.reply_text(
-            "Price Drop Tracker Bot
+            "Price Tracker Bot
 
 "
-            "Send Amazon/Flipkart/Ajio/Nykaa/Snapdeal/TataCliQ/Shopsy links or product names
+            "Send Amazon/Flipkart/Ajio/Nykaa/Snapdeal/TataCliQ links
 "
             "Get alerts for Rs 1 drop
 "
-            f"Free slots: {10 - len(users_products[user_id])}/10",
+            f"Free slots: {slots_left}/10",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
     except Exception as e:
-        print(f"[ERROR] start: {e}")
+        print(f"Error in start: {e}")
 
-# LIST COMMAND
-async def list_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def list_products(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_id = update.effective_user.id
         products = users_products.get(user_id, [])
@@ -107,17 +83,16 @@ async def list_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 "
         keyboard = []
         
-        for i, p in enumerate(products[:8], 1):
-            price_str = f"Rs {p.get('price', 0)}" if p.get('price') else "Checking..."
-            text += f"{i}. {p['name'][:30]}... {price_str}
+        for i, p in enumerate(products[:10], 1):
+            price_info = f"Rs {p.get('price', 0)}" if p.get('price') else "Checking..."
+            text += f"{i}. {p['name'][:30]}... {price_info}
 "
             keyboard.append([InlineKeyboardButton(f"Remove {p['id'][:6]}", callback_data=f"del_{p['id']}")])
         
         await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
     except Exception as e:
-        print(f"[ERROR] list_cmd: {e}")
+        print(f"Error in list_products: {e}")
 
-# HANDLE TEXT MESSAGES
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_id = update.effective_user.id
@@ -127,11 +102,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             users_products[user_id] = []
         
         if len(users_products[user_id]) >= 10:
-            await update.message.reply_text("Max 10 products reached. Invite friends for more!")
+            await update.message.reply_text(
+                "Max 10 products reached. Invite friends for more slots!"
+            )
             return
         
         product_id = f"p{user_id}_{int(time.time())}"
-        product_name = text[:45] if len(text) > 45 else text
+        product_name = text[:50] if len(text) > 50 else text
         
         users_products[user_id].append({
             'id': product_id,
@@ -141,20 +118,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'last_check': 0
         })
         
-        # ADD AFFILIATE (AMAZON TAG OR CUELINKS)
         affiliate_url = add_affiliate(text)
         keyboard = [[InlineKeyboardButton("Buy Now", url=affiliate_url)]]
         
         await update.message.reply_text(
             f"Tracking started:
+
 {product_name}
-ID: {product_id}",
+
+ID: {product_id}
+
+Next check in 10 hours",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
     except Exception as e:
-        print(f"[ERROR] handle_message: {e}")
+        print(f"Error in handle_message: {e}")
 
-# BUTTON CALLBACKS
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         query = update.callback_query
@@ -164,16 +143,33 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         data = query.data
         
         if data == "add":
-            await query.edit_message_text("Send product link or name")
+            await query.edit_message_text("Send product link or product name (e.g., iPhone 15)")
         
         elif data == "list":
-            await list_cmd(update, context)
+            products = users_products.get(user_id, [])
+            
+            if not products:
+                await query.edit_message_text("No products yet")
+                return
+            
+            text = "Your Products:
+
+"
+            keyboard = []
+            
+            for i, p in enumerate(products[:10], 1):
+                price_info = f"Rs {p.get('price', 0)}" if p.get('price') else "Checking..."
+                text += f"{i}. {p['name'][:30]}... {price_info}
+"
+                keyboard.append([InlineKeyboardButton(f"Remove {p['id'][:6]}", callback_data=f"del_{p['id']}")])
+            
+            await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         
         elif data.startswith("del_"):
             product_id = data[4:]
             if user_id in users_products:
                 users_products[user_id] = [p for p in users_products[user_id] if p['id'] != product_id]
-            await query.edit_message_text("Product removed")
+            await query.edit_message_text("Product removed from tracking")
         
         elif data.startswith("check_"):
             product_id = data[6:]
@@ -196,23 +192,29 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         await context.bot.send_message(
                             user_id,
                             f"PRICE DROP!
+
 {product['name']}
+
 Was: Rs {old_price}
 Now: Rs {new_price}
-Saved: Rs {savings}",
+Saved: Rs {savings}
+
+Date: {datetime.now().strftime('%d/%m/%Y %H:%M')}",
                             reply_markup=InlineKeyboardMarkup(keyboard)
                         )
                     
-                    await query.edit_message_text(f"Current Price: Rs {new_price}")
-                else:
-                    await query.edit_message_text("Failed to get price")
-    except Exception as e:
-        print(f"[ERROR] button_callback: {e}")
+                    await query.edit_message_text(f"Current Price: Rs {new_price}
 
-# ADMIN STATUS
+Date: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+                else:
+                    await query.edit_message_text("Failed to fetch price. Try again later.")
+    except Exception as e:
+        print(f"Error in button_callback: {e}")
+
 async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         if update.effective_user.id != ADMIN_ID:
+            await update.message.reply_text("You are not admin")
             return
         
         total_users = len(users_products)
@@ -220,40 +222,66 @@ async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await update.message.reply_text(
             f"Admin Stats
-Users: {total_users}
-Products: {total_products}
-Affiliate: Amazon (separate) + CueLinks (all others) ACTIVE"
+
+"
+            f"Total Users: {total_users}
+"
+            f"Total Products Tracking: {total_products}
+"
+            f"Affiliate: Amazon (tag) + CueLinks (others) ACTIVE"
         )
     except Exception as e:
-        print(f"[ERROR] status_cmd: {e}")
+        print(f"Error in status_cmd: {e}")
 
-# MAIN
+async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        await update.message.reply_text(
+            "Price Tracker Bot Help
+
+"
+            "/start - Start bot
+"
+            "/list - Show your products
+"
+            "/status - Admin stats (admin only)
+"
+            "/help - This message
+
+"
+            "Commands:
+"
+            "Send product link or name to track
+"
+            "Get instant alerts on price drops"
+        )
+    except Exception as e:
+        print(f"Error in help_cmd: {e}")
+
 def main():
-    print("[CHECK] Token check...")
     if "REPLACE_WITH" in TELEGRAM_TOKEN:
-        print("[FATAL] Please add your TELEGRAM_TOKEN to app.py line 8")
-        print("[FATAL] Get token from @BotFather on Telegram")
+        print("ERROR: Add your TELEGRAM_TOKEN to line 13")
+        print("Get token from @BotFather on Telegram")
         return
     
-    if "REPLACE_WITH" in AMAZON_AFFILIATE_TAG:
-        print("[FATAL] Please add your AMAZON_AFFILIATE_TAG to app.py line 14")
+    if "REPLACE_WITH" in AMAZON_TAG:
+        print("ERROR: Add your AMAZON_TAG to line 16")
         return
     
     if "REPLACE_WITH" in CUELINKS_ID:
-        print("[FATAL] Please add your CUELINKS_ID to app.py line 17")
+        print("ERROR: Add your CUELINKS_ID to line 17")
         return
     
-    print("[INIT] Creating bot application...")
+    print("Bot starting...")
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     
-    print("[HANDLER] Adding command handlers...")
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("list", list_cmd))
+    app.add_handler(CommandHandler("list", list_products))
     app.add_handler(CommandHandler("status", status_cmd))
+    app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(CallbackQueryHandler(button_callback))
     
-    print("[RUNNING] Bot polling started...")
+    print("Bot running forever...")
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
