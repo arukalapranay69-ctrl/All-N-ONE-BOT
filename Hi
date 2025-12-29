@@ -1,0 +1,27 @@
+# TELEGRAM
+YOUR_TELEGRAM_BOT_TOKEN=1234567890:8515989457:AAGXoYGQiR0dosN39ECSqQ-uqIPRZcjK7VE
+
+# MONGODB (10 databases - auto-failover)
+YOUR_MONGODB_A_CONNECTION_STRING=mongodb+srv://admin:Pranay123@cluster0.tr5neeu.mongodb.net/?appName=Cluster0
+YOUR_MONGODB_B_CONNECTION_STRING=mongodb+srv://user:pass@cluster1.xxxxx.mongodb.net/pricebot_b
+YOUR_MONGODB_C_CONNECTION_STRING=mongodb+srv://user:pass@cluster2.xxxxx.mongodb.net/pricebot_c
+YOUR_MONGODB_D_CONNECTION_STRING=mongodb+srv://user:pass@cluster3.xxxxx.mongodb.net/pricebot_d
+YOUR_MONGODB_E_CONNECTION_STRING=mongodb+srv://user:pass@cluster4.xxxxx.mongodb.net/pricebot_e
+YOUR_MONGODB_F_CONNECTION_STRING=mongodb+srv://user:pass@cluster5.xxxxx.mongodb.net/pricebot_f
+YOUR_MONGODB_G_CONNECTION_STRING=mongodb+srv://user:pass@cluster6.xxxxx.mongodb.net/pricebot_g
+YOUR_MONGODB_H_CONNECTION_STRING=mongodb+srv://user:pass@cluster7.xxxxx.mongodb.net/pricebot_h
+YOUR_MONGODB_I_CONNECTION_STRING=mongodb+srv://user:pass@cluster8.xxxxx.mongodb.net/pricebot_i
+YOUR_MONGODB_J_CONNECTION_STRING=mongodb+srv://user:pass@cluster9.xxxxx.mongodb.net/pricebot_j
+
+# SCRAPER ANT (10 keys - intelligent rotation)
+YOUR_SCRAPER_ANT_KEY_1=5e0327969bb34f88b9adf3f6b1032893
+YOUR_SCRAPER_ANT_KEY_2=efgh5678ijkl9012mnop3456qrst1234
+YOUR_SCRAPER_ANT_KEY_3=...
+# ... up to KEY_10
+
+# ADMIN
+YOUR_ADMIN_USER_ID=7157243817
+
+# AFFILIATE (optional)
+AMAZON_AFFILIATE_TAG=pranay0d82-21
+FLIPKART_AFFILIATE_ID=yourflipkartid
